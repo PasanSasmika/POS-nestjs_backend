@@ -1,0 +1,245 @@
+// This is your Prisma schema file for the POS System.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+// -------------------
+// CORE USER & STORE MODELS
+// -------------------
+
+model User {
+  id                Int                 @id @default(autoincrement())
+  username          String              @unique
+  email             String?             @unique
+  password          String
+  fullName          String
+  role              Role                @default(CASHIER)
+  storeId           Int?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relations
+  store             Store?              @relation(fields: [storeId], references: [id])
+  sales             Sale[]
+  vendorDocuments   VendorDocument[]
+  customerDocuments CustomerDocument[]
+
+  @@map("users")
+}
+
+model Store {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users     User[]
+  sales     Sale[]
+
+  @@map("stores")
+}
+
+
+// -------------------
+// VENDOR MANAGEMENT
+// -------------------
+
+model Vendor {
+  id             Int              @id @default(autoincrement())
+  name           String
+  contactPerson  String?          @map("contact_person")
+  phone          String
+  email          String?
+  address        String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  documents      VendorDocument[]
+  products       Product[]
+
+  @@map("vendors")
+}
+
+model VendorDocument {
+  id          Int                 @id @default(autoincrement())
+  vendorId    Int                 @map("vendor_id")
+  category    VendorDocCategory
+  fileName    String              @map("file_name")
+  filePath    String              @map("file_path")
+  version     Int                 @default(1)
+  uploadedById Int                @map("uploaded_by")
+  createdAt   DateTime            @default(now())
+
+  // Relations
+  vendor      Vendor              @relation(fields: [vendorId], references: [id])
+  uploadedBy  User                @relation(fields: [uploadedById], references: [id])
+
+  @@map("vendor_documents")
+}
+
+
+// -------------------
+// CUSTOMER MANAGEMENT
+// -------------------
+
+model Customer {
+  id            Int                 @id @default(autoincrement())
+  name          String
+  phone         String              @unique
+  email         String?             @unique
+  loyaltyPoints Int                 @default(0) @map("loyalty_points")
+  segment       CustomerSegment     @default(New)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  // Relations
+  documents     CustomerDocument[]
+  sales         Sale[]
+
+  @@map("customers")
+}
+
+model CustomerDocument {
+  id            Int                 @id @default(autoincrement())
+  customerId    Int                 @map("customer_id")
+  category      CustomerDocCategory
+  fileName      String              @map("file_name")
+  filePath      String              @map("file_path")
+  version       Int                 @default(1)
+  uploadedById  Int                 @map("uploaded_by")
+  createdAt     DateTime            @default(now())
+
+  // Relations
+  customer    Customer            @relation(fields: [customerId], references: [id])
+  uploadedBy  User                @relation(fields: [uploadedById], references: [id])
+
+  @@map("customer_documents")
+}
+
+
+// -------------------
+// INVENTORY & PRODUCTS
+// -------------------
+
+model Product {
+  id             Int        @id @default(autoincrement())
+  sku            String     @unique
+  name           String
+  category       String
+  supplierId     Int        @map("supplier_id")
+  costPrice      Float      @map("cost_price")
+  sellingPrice   Float      @map("selling_price")
+  stockQuantity  Int        @map("stock_quantity")
+  reorderLevel   Int        @default(0) @map("reorder_level")
+  expiryDate     DateTime?  @map("expiry_date")
+  createdAt      DateTime   @default(now())
+
+  // Relations
+  supplier       Vendor     @relation(fields: [supplierId], references: [id])
+  saleItems      SaleItem[]
+
+  @@map("products")
+}
+
+
+// -------------------
+// SALES & BILLING
+// -------------------
+
+model Sale {
+  id             Int          @id @default(autoincrement())
+  invoiceNumber  String       @unique @map("invoice_number")
+  userId         Int          @map("user_id")
+  storeId        Int          @map("store_id")
+  customerId     Int?         @map("customer_id")
+  totalAmount    Float        @map("total_amount")
+  costTotal      Float        @map("cost_total")
+  profitTotal    Float        @map("profit_total")
+  discount       Float        @default(0)
+  tax            Float        @default(0)
+  paymentMethod  PaymentMethod @map("payment_method")
+  status         SaleStatus   @default(Completed)
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  user           User         @relation(fields: [userId], references: [id])
+  store          Store        @relation(fields: [storeId], references: [id])
+  customer       Customer?    @relation(fields: [customerId], references: [id])
+  items          SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id         Int     @id @default(autoincrement())
+  saleId     Int     @map("sale_id")
+  productId  Int     @map("product_id")
+  quantity   Int
+  price      Float   // Selling price at time of sale
+  costPrice  Float   @map("cost_price") // Cost price at time of sale
+  profit     Float
+  discount   Float   @default(0)
+
+  // Relations
+  sale       Sale    @relation(fields: [saleId], references: [id])
+  product    Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}
+
+
+// -------------------
+// ENUM DEFINITIONS
+// -------------------
+
+enum Role {
+  ADMIN
+  MANAGER
+  CASHIER
+  STOCK
+}
+
+enum VendorDocCategory {
+  Contract
+  Agreement
+  License
+  Invoice
+  Other
+}
+
+enum CustomerDocCategory {
+  IDProof
+  Agreement
+  Receipt
+  Warranty
+  Other
+}
+
+enum CustomerSegment {
+  VIP
+  Regular
+  New
+}
+
+enum PaymentMethod {
+  Cash
+  Card
+  Wallet
+  Split
+}
+
+enum SaleStatus {
+  Completed
+  Refunded
+  Pending
+}
