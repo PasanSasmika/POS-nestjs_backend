@@ -58,4 +58,13 @@ export class UsersService {
     await this.findOne(id); // Check if user exists first
     return this.prisma.user.delete({ where: { id } });
   }
+
+  async findOneByUsername(username: string) {
+    const user = await this.prisma.user.findUnique({ where: { username } });
+    if (!user) {
+      throw new NotFoundException(`User with username ${username} not found`);
+    }
+    return user; 
+  }
+
 }
