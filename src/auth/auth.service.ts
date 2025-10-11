@@ -10,13 +10,12 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  // This method is for internal use by the LocalStrategy (if you add it later)
-  // For now, our login logic will handle it directly.
+  
   async validateUser(username: string, pass: string): Promise<any> {
-    // We need a way to find a user by username in UsersService
+
     const user = await this.usersService.findOneByUsername(username); 
     if (user && await bcrypt.compare(pass, user.password)) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      
       const { password, ...result } = user;
       return result;
     }
