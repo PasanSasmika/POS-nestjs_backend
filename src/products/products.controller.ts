@@ -40,4 +40,10 @@ export class ProductsController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.remove(id);
   }
+
+   @Get('lookup/:sku')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.CASHIER) // Allow cashiers to use this
+  findOneBySku(@Param('sku') sku: string) {
+    return this.productsService.findOneBySku(sku);
+  }
 }

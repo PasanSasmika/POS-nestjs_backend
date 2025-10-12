@@ -56,4 +56,15 @@ export class ProductsService {
     await this.findOne(id); // Ensure product exists
     return this.prisma.product.delete({ where: { id } });
   }
+
+  async findOneBySku(sku: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { sku },
+    });
+    if (!product) {
+      throw new NotFoundException(`Product with SKU ${sku} not found`);
+    }
+    return product;
+  }
+  
 }
