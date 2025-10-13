@@ -35,4 +35,10 @@ export class SalesController {
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.salesService.findOne(id);
   }
+
+  @Post(':id/refund')
+  @Roles(Role.ADMIN, Role.MANAGER) // Only Admin and Manager can process refunds
+  refund(@Param('id', ParseIntPipe) id: number) {
+    return this.salesService.refund(id);
+  }
 }

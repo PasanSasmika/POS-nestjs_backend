@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
 
@@ -107,5 +107,46 @@ export class SalesService {
       throw new NotFoundException(`Sale with ID ${id} not found.`);
     }
     return sale;
+  }
+
+  async refund(saleId: number) {
+    // Use a transaction to ensure both stock and sale status are updated together
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Find the original sale and its items
+      const sale = await tx.sale.findUnique({
+        where: { id: saleId },
+        include: { items: true },
+      });
+
+      // 2. Validate the sale
+      if (!sale) {
+        throw new NotFoundException(`Sale with ID ${saleId} not found.`);
+      }
+      if (sale.status === 'Refunded') {
+        throw new ConflictException(`Sale with ID ${saleId} has already been refunded.`);
+      }
+
+      // 3. Add the stock back to inventory for each item in the sale
+      for (const item of sale.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stockQuantity: {
+              increment: item.quantity, // Use 'increment' to add stock back
+            },
+          },
+        });
+      }
+
+      // 4. Update the sale's status to 'Refunded'
+      const updatedSale = await tx.sale.update({
+        where: { id: saleId },
+        data: {
+          status: 'Refunded',
+        },
+      });
+
+      return updatedSale;
+    });
   }
 }
