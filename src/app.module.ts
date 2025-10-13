@@ -8,13 +8,14 @@ import { ConfigModule } from '@nestjs/config';
 import { VendorsModule } from './vendors/vendors.module';
 import { ProductsModule } from './products/products.module';
 import { SalesModule } from './sales/sales.module';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ 
       isGlobal: true,
     }),
-    UsersModule, PrismaModule, AuthModule, VendorsModule, ProductsModule, SalesModule], // Add UsersModule and PrismaModule here
+    UsersModule, PrismaModule, AuthModule, VendorsModule, ProductsModule, SalesModule, CustomersModule], // Add UsersModule and PrismaModule here
   controllers: [AppController],
   providers: [AppService],
 })
