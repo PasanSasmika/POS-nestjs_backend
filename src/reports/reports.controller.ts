@@ -16,4 +16,10 @@ export class ReportsController {
   getSalesSummary(@Query() queryDto: ReportQueryDto) {
     return this.reportsService.getSalesSummary(queryDto.startDate, queryDto.endDate);
   }
+
+  @Get('stock-summary')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.STOCK) // Allow Stock Staff to view this
+  getStockSummary() {
+    return this.reportsService.getStockSummary();
+  }
 }

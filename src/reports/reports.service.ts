@@ -42,4 +42,41 @@ export class ReportsService {
       },
     };
   }
+
+  
+
+  async getStockSummary() {
+    // 1. Fetch all products once. This is the only database call needed.
+    const allProducts = await this.prisma.product.findMany({
+      orderBy: { name: 'asc' },
+    });
+
+    // 2. Calculate the total inventory value
+    const totalInventoryValue = allProducts.reduce((sum, product) => {
+      return sum + (product.stockQuantity * product.costPrice);
+    }, 0);
+
+    // 3. Filter the already-fetched list in memory to find low-stock items.
+    //    This is efficient and fixes the error.
+    const lowStockItems = allProducts
+      .filter(product => product.stockQuantity <= product.reorderLevel)
+      .map(product => ({
+        // Format the object to match the desired output
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        stockQuantity: product.stockQuantity,
+        reorderLevel: product.reorderLevel,
+      }));
+
+    // 4. Combine everything into the response object
+    return {
+      totalProducts: allProducts.length,
+      totalInventoryValue,
+      lowStockItemsCount: lowStockItems.length,
+      lowStockItems,
+      allProducts, //  can choose to return the full list or not
+    };
+  }
+
 }
