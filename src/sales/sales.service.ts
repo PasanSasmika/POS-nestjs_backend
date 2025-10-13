@@ -1,10 +1,12 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
-
+import { AuditService } from 'src/audit/audit.service';
 @Injectable()
 export class SalesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService,
+     private auditService: AuditService,
+  ) {}
 
   // src/sales/sales.service.ts
 
@@ -75,6 +77,20 @@ export class SalesService {
         });
       }
 
+      if (customerId) {
+        const pointsEarned = Math.floor(totalAmount / 100);
+        if (pointsEarned > 0) {
+          await tx.customer.update({
+            where: { id: customerId },
+            data: {
+              loyaltyPoints: {
+                increment: pointsEarned,
+              },
+            },
+          });
+        }
+      }
+
       return sale;
     });
   }
@@ -109,7 +125,7 @@ export class SalesService {
     return sale;
   }
 
-  async refund(saleId: number) {
+  async refund(saleId: number , userId: number) {
     // Use a transaction to ensure both stock and sale status are updated together
     return this.prisma.$transaction(async (tx) => {
       // 1. Find the original sale and its items
@@ -144,6 +160,14 @@ export class SalesService {
         data: {
           status: 'Refunded',
         },
+      });
+
+       await this.auditService.logAction({
+        userId: userId,
+        action: 'REFUND_SALE',
+        entity: 'Sale',
+        entityId: sale.id,
+        details: { originalStatus: 'Completed', newStatus: 'Refunded' }
       });
 
       return updatedSale;

@@ -11,13 +11,14 @@ import { SalesModule } from './sales/sales.module';
 import { CustomersModule } from './customers/customers.module';
 import { FilesModule } from './files/files.module';
 import { ReportsModule } from './reports/reports.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ 
       isGlobal: true,
     }),
-    UsersModule, PrismaModule, AuthModule, VendorsModule, ProductsModule, SalesModule, CustomersModule, FilesModule, ReportsModule], // Add UsersModule and PrismaModule here
+    UsersModule, PrismaModule, AuthModule, VendorsModule, ProductsModule, SalesModule, CustomersModule, FilesModule, ReportsModule, AuditModule], // Add UsersModule and PrismaModule here
   controllers: [AppController],
   providers: [AppService],
 })

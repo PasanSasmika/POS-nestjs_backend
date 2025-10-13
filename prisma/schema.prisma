@@ -30,6 +30,7 @@ model User {
   sales             Sale[]
   vendorDocuments   VendorDocument[]
   customerDocuments CustomerDocument[]
+  auditLogs         AuditLog[]
 
   @@map("users")
 }
@@ -48,6 +49,20 @@ model Store {
   @@map("stores")
 }
 
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  action    String   // e.g., "CREATE_SALE", "REFUND_SALE", "UPDATE_PRODUCT"
+  entity    String   // e.g., "Sale", "Product"
+  entityId  Int      @map("entity_id")
+  details   Json?    // Store before/after state or other context as JSON
+  createdAt DateTime @default(now())
+
+  // Relation to the user who performed the action
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
 
 // -------------------
 // VENDOR MANAGEMENT

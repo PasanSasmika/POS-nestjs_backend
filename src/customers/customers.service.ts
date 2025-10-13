@@ -1,8 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { UploadDocumentDto } from './dto/upload-document.dto';
+import { RedeemPointsDto } from './dto/redeem-points.dto';
 
 @Injectable()
 export class CustomersService {
@@ -72,6 +73,27 @@ export class CustomersService {
         category: documentDto.category,
         fileName: file.originalname,
         filePath: file.path,
+      },
+    });
+  }
+
+   async redeemPoints(customerId: number, redeemPointsDto: RedeemPointsDto) {
+    const { points } = redeemPointsDto;
+
+    const customer = await this.findOne(customerId);
+
+    if (customer.loyaltyPoints < points) {
+      throw new BadRequestException(
+        `Insufficient points. Available: ${customer.loyaltyPoints}, trying to redeem: ${points}`,
+      );
+    }
+
+    return this.prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        loyaltyPoints: {
+          decrement: points,
+        },
       },
     });
   }

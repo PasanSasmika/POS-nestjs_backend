@@ -9,6 +9,7 @@ import { Role } from '@prisma/client';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadDocumentDto } from './dto/upload-document.dto';
 import type { Request } from 'express';
+import { RedeemPointsDto } from './dto/redeem-points.dto';
 
 @Controller('customers')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -56,5 +57,14 @@ export class CustomersController {
   ) {
     const user = req.user as { id: number };
     return this.customersService.addDocument(id, documentDto, file, user.id);
+  }
+
+  @Post(':id/redeem-points')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.CASHIER) // Allow cashiers to redeem points for customers
+  redeemPoints(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() redeemPointsDto: RedeemPointsDto,
+  ) {
+    return this.customersService.redeemPoints(id, redeemPointsDto);
   }
 }
