@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { UploadDocumentDto } from './dto/upload-document.dto';
 
 @Injectable()
 export class CustomersService {
@@ -54,5 +55,24 @@ export class CustomersService {
   async remove(id: number) {
     await this.findOne(id); // Ensure customer exists
     return this.prisma.customer.delete({ where: { id } });
+  }
+
+  async addDocument(
+    customerId: number,
+    documentDto: UploadDocumentDto,
+    file: Express.Multer.File,
+    userId: number,
+  ) {
+    await this.findOne(customerId); // Ensure customer exists
+
+    return this.prisma.customerDocument.create({
+      data: {
+        customerId,
+        uploadedById: userId,
+        category: documentDto.category,
+        fileName: file.originalname,
+        filePath: file.path,
+      },
+    });
   }
 }

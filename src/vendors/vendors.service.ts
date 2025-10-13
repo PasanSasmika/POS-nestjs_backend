@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateVendorDto } from './dto/create-vendor.dto';
 import { UpdateVendorDto } from './dto/update-vendor.dto';
+import { UploadDocumentDto } from './dto/upload-document.dto';
 
 @Injectable()
 export class VendorsService {
@@ -35,4 +36,24 @@ export class VendorsService {
     await this.findOne(id); // Ensure the vendor exists before deleting
     return this.prisma.vendor.delete({ where: { id } });
   }
+
+   async addDocument(
+    vendorId: number,
+    documentDto: UploadDocumentDto,
+    file: Express.Multer.File,
+    userId: number,
+  ) {
+    await this.findOne(vendorId); // Ensure vendor exists
+
+    return this.prisma.vendorDocument.create({
+      data: {
+        vendorId,
+        uploadedById: userId,
+        category: documentDto.category,
+        fileName: file.originalname,
+        filePath: file.path, // Path where multer saved the file
+      },
+    });
+  }
+
 }

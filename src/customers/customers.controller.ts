@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, UseInterceptors, UploadedFile, Req } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -6,6 +6,9 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/guards/roles.decorator';
 import { Role } from '@prisma/client';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadDocumentDto } from './dto/upload-document.dto';
+import type { Request } from 'express';
 
 @Controller('customers')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -40,5 +43,18 @@ export class CustomersController {
   @Roles(Role.ADMIN) // Only Admin can delete customers
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.customersService.remove(id);
+  }
+
+  @Post(':id/documents')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadDocument(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() documentDto: UploadDocumentDto,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
+    const user = req.user as { id: number };
+    return this.customersService.addDocument(id, documentDto, file, user.id);
   }
 }
