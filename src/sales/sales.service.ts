@@ -8,15 +8,17 @@ export class SalesService {
      private auditService: AuditService,
   ) {}
 
-  // src/sales/sales.service.ts
 
   async create(createSaleDto: CreateSaleDto, userId: number, storeId: number) {
     const { customerId, items } = createSaleDto;
 
     return this.prisma.$transaction(async (tx) => {
       const productIds = items.map((item) => item.productId);
-      const products = await tx.product.findMany({
+
+
+      const productsForPricing = await tx.product.findMany({
         where: { id: { in: productIds } },
+        select: { id: true, name: true, costPrice: true, sellingPrice: true },
       });
 
       const saleItemsData: any[] = [];
@@ -24,24 +26,20 @@ export class SalesService {
       let totalAmount = 0;
 
       for (const item of items) {
-        const product = products.find((p) => p.id === item.productId);
-
-        if (!product) {
+        const productInfo = productsForPricing.find((p) => p.id === item.productId);
+        if (!productInfo) {
           throw new NotFoundException(`Product with ID ${item.productId} not found.`);
         }
-        if (product.stockQuantity < item.quantity) {
-          throw new BadRequestException(`Not enough stock for ${product.name}. Available: ${product.stockQuantity}, Requested: ${item.quantity}`);
-        }
         
-        costTotal += product.costPrice * item.quantity;
-        totalAmount += product.sellingPrice * item.quantity;
+        costTotal += productInfo.costPrice * item.quantity;
+        totalAmount += productInfo.sellingPrice * item.quantity;
         
         saleItemsData.push({
           productId: item.productId,
           quantity: item.quantity,
-          price: product.sellingPrice,
-          costPrice: product.costPrice,
-          profit: (product.sellingPrice - product.costPrice) * item.quantity,
+          price: productInfo.sellingPrice,
+          costPrice: productInfo.costPrice,
+          profit: (productInfo.sellingPrice - productInfo.costPrice) * item.quantity,
         });
       }
       
@@ -58,23 +56,41 @@ export class SalesService {
           storeId,
           customerId,
           items: {
-            create: saleItemsData,
+            create: saleItemsData, 
           },
         },
         include: {
-          items: true,
+          items: true, 
         },
       });
 
+   
       for (const item of items) {
-        await tx.product.update({
-          where: { id: item.productId },
+        const productInfo = productsForPricing.find(p => p.id === item.productId)!; 
+
+        const updateResult = await tx.product.updateMany({
+          where: {
+            id: item.productId,
+            stockQuantity: {
+              gte: item.quantity, 
+            },
+          },
           data: {
             stockQuantity: {
-              decrement: item.quantity,
+              decrement: item.quantity, 
             },
           },
         });
+
+        if (updateResult.count === 0) {
+          const currentProduct = await tx.product.findUnique({
+              where: { id: item.productId },
+              select: { stockQuantity: true, name: true }
+          });
+          throw new BadRequestException(
+            `Not enough stock for ${productInfo.name}. Available: ${currentProduct?.stockQuantity ?? 0}, Requested: ${item.quantity}`
+          );
+        }
       }
 
       if (customerId) {
@@ -82,11 +98,7 @@ export class SalesService {
         if (pointsEarned > 0) {
           await tx.customer.update({
             where: { id: customerId },
-            data: {
-              loyaltyPoints: {
-                increment: pointsEarned,
-              },
-            },
+            data: { loyaltyPoints: { increment: pointsEarned } },
           });
         }
       }
@@ -95,7 +107,6 @@ export class SalesService {
     });
   }
 
-  // ... findAll and findOne methods remain the same
   findAll() {
     return this.prisma.sale.findMany({
       include: { user: { select: { fullName: true } }, customer: { select: { name: true } } },
