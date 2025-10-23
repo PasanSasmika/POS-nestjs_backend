@@ -1,0 +1,21 @@
+# Ignore Git files
+.git
+.gitignore
+
+# Ignore Node dependencies (we install them fresh inside the container)
+node_modules
+
+# Ignore build output (we build it inside the container)
+dist
+
+# Ignore environment files (these are injected differently, not copied)
+.env
+*.env
+
+# Ignore Docker files themselves
+Dockerfile
+.dockerignore
+
+# Ignore IDE/OS specific files
+.vscode/
+*.DS_Store
