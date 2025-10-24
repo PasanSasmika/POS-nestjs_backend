@@ -22,7 +22,7 @@ export class VendorsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER) // Only Admin and Manager can view vendors
+  @Roles(Role.ADMIN, Role.MANAGER, Role.STOCK) // Only Admin and Manager can view vendors
   findAll() {
     return this.vendorsService.findAll();
   }
