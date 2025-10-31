@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -6,6 +6,8 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/guards/roles.decorator';
 import { Role } from '@prisma/client';
+import { ReceiveStockDto } from './dto/receive-stock.dto';
+import type { Request } from 'express';
 
 @Controller('products')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -17,6 +19,17 @@ export class ProductsController {
   create(@Body() createProductDto: CreateProductDto) {
     return this.productsService.create(createProductDto);
   }
+
+  @Post('receive-stock')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN, Role.MANAGER, Role.STOCK) // Only these roles can receive stock
+receiveStock(
+  @Body() receiveStockDto: ReceiveStockDto, // We will create this DTO
+  @Req() req: Request,
+) {
+  const user = req.user as { id: number };
+  return this.productsService.receiveStock(receiveStockDto, user.id);
+}
 
   @Get()
   // All authenticated users can view products
@@ -46,4 +59,11 @@ export class ProductsController {
   findOneBySku(@Param('sku') sku: string) {
     return this.productsService.findOneBySku(sku);
   }
+
+  @Get('stock-in/logs')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN, Role.MANAGER, Role.STOCK) // Roles that can view stock history
+getStockInLogs() {
+  return this.productsService.getStockInLogs();
+}
 }

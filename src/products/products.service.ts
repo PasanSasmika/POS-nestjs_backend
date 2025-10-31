@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ReceiveStockDto } from './dto/receive-stock.dto';
 
 @Injectable()
 export class ProductsService {
@@ -66,5 +67,62 @@ export class ProductsService {
     }
     return product;
   }
+
+  async receiveStock(receiveStockDto: ReceiveStockDto, userId: number) {
+  const { vendorId, items } = receiveStockDto;
+
+  // Use a transaction to ensure all updates succeed or fail together
+  return this.prisma.$transaction(async (tx) => {
+    
+    // Loop through each item in the received shipment
+    for (const item of items) {
+      
+      // 1. Increment the stock quantity
+      // 2. Update the product's main costPrice to this new cost
+      const updatedProduct = await tx.product.update({
+        where: { id: item.productId },
+        data: {
+          stockQuantity: {
+            increment: item.quantityReceived, // Adds to the current quantity
+          },
+          costPrice: item.costPrice, // Updates the main cost price
+        },
+      });
+
+      // 3. Create a log entry for this transaction
+      await tx.stockInLog.create({
+        data: {
+          productId: item.productId,
+          vendorId: vendorId,
+          userId: userId,
+          quantityReceived: item.quantityReceived,
+          costPrice: item.costPrice,
+        },
+      });
+    }
+    
+    return { message: "Stock received successfully." };
+  });
+}
+
+async getStockInLogs() {
+  return this.prisma.stockInLog.findMany({
+    orderBy: {
+      createdAt: 'desc', // Show newest first
+    },
+    include: {
+      // Join related data to get the names
+      product: {
+        select: { name: true, sku: true },
+      },
+      user: {
+        select: { fullName: true, username: true },
+      },
+      vendor: {
+        select: { name: true },
+      },
+    },
+  });
+}
   
 }
