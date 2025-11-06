@@ -26,10 +26,6 @@ export class CreateProductDto {
   sellingPrice: number;
 
   @IsNumber()
-  @Min(0)
-  stockQuantity: number;
-
-  @IsNumber()
   @IsOptional()
   reorderLevel?: number;
 }

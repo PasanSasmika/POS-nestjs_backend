@@ -154,7 +154,7 @@ model Product {
   supplierId     Int        @map("supplier_id")
   costPrice      Float      @map("cost_price")
   sellingPrice   Float      @map("selling_price")
-  stockQuantity  Int        @map("stock_quantity")
+  stockQuantity  Int        @default(0) @map("stock_quantity")
   reorderLevel   Int        @default(0) @map("reorder_level")
   expiryDate     DateTime?  @map("expiry_date")
   createdAt      DateTime   @default(now())
