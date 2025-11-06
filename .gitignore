@@ -63,3 +63,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .sonartmp/
 scanner-report/
 .sonar_lock
+
+# SonarQube properties file (CONTAINS SECRETS)
+sonar-project.properties
